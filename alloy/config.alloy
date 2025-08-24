@@ -69,18 +69,98 @@ loki.process "filter_critical_events" {
     }
   }
 
-  // Filter for NFS issues
+  // Filter for NFS issues with server extraction
   stage.match {
     selector = "{job=\"system-logs\"}"
     
+    // Match NFS server not responding messages
     stage.regex {
-      expression = "(?i).*(nfs.*not responding|nfs.*timeout|nfs.*connection.*refused|nfs.*server.*not responding|rpc.*timeout).*"
+      expression = "(?i).*server\s+([0-9a-zA-Z.-]+).*not responding.*"
     }
     
     stage.labels {
       values = {
         severity = "critical",
         event_type = "nfs_issue",
+        nfs_server = "$1",
+        issue_type = "server_not_responding",
+      }
+    }
+  }
+
+  // Filter for NFS timeout issues with server extraction
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    // Match NFS timeout messages with server info
+    stage.regex {
+      expression = "(?i).*nfs.*(?:server\s+([0-9a-zA-Z.-]+)|([0-9a-zA-Z.-]+)\s*:).*timeout.*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "nfs_issue",
+        nfs_server = "$1$2",
+        issue_type = "timeout",
+      }
+    }
+  }
+
+  // Filter for NFS mount issues with mount point and server
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    // Match mount failures with server and mount point
+    stage.regex {
+      expression = "(?i).*mount.*([0-9a-zA-Z.-]+):(/\S+).*(?:failed|error|timeout).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "nfs_issue",
+        nfs_server = "$1",
+        mount_point = "$2",
+        issue_type = "mount_failure",
+      }
+    }
+  }
+
+  // Filter for RPC timeout issues (often NFS related)
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    // Match RPC timeout with server info
+    stage.regex {
+      expression = "(?i).*rpc.*(?:server\s+([0-9a-zA-Z.-]+)|([0-9a-zA-Z.-]+)\s*:).*(?:timeout|not responding).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "nfs_issue",
+        nfs_server = "$1$2",
+        issue_type = "rpc_timeout",
+      }
+    }
+  }
+
+  // Filter for general NFS issues without specific server info
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    // Match general NFS issues
+    stage.regex {
+      expression = "(?i).*(nfs.*(?:error|failed|failure|stale|hung)|portmap.*(?:error|failed)).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "nfs_issue",
+        nfs_server = "unknown",
+        issue_type = "general_nfs_error",
       }
     }
   }

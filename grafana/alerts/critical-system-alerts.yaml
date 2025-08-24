@@ -21,9 +21,11 @@ groups:
           service: nfs
           alert_type: nfs_failure
         annotations:
-          summary: "NFS not responding on {{ $labels.hostname }}"
-          description: "NFS issues detected on {{ $labels.hostname }}. Check NFS mounts and network connectivity"
+          summary: "NFS issues detected on {{ $labels.hostname }}"
+          description: "NFS server {{ $labels.nfs_server | default "unknown" }} is experiencing issues on {{ $labels.hostname }}. Issue type: {{ $labels.issue_type | default "general" }}. Check NFS mounts and network connectivity."
           runbook_url: "https://wiki.company.com/runbooks/nfs-issues"
+          nfs_server: "{{ $labels.nfs_server | default \"unknown\" }}"
+          mount_point: "{{ $labels.mount_point | default \"not specified\" }}"
 
       - alert: PuppetAgentFailure
         expr: 'count_over_time({job="system-logs", event_type="puppet_failure"}[30m]) > 2'

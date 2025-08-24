@@ -97,8 +97,12 @@ Labels:
   service: nfs
   alert_type: nfs_failure
 Annotations:
-  summary: NFS not responding on {{ $labels.hostname }}
-  description: NFS issues detected on {{ $labels.hostname }}
+  summary: NFS issues detected on {{ $labels.hostname }}
+  description: |
+    NFS server {{ $labels.nfs_server | default "unknown" }} is experiencing issues on {{ $labels.hostname }}.
+    Issue type: {{ $labels.issue_type | default "general" }}
+    Mount point: {{ $labels.mount_point | default "not specified" }}
+    Check NFS mounts and network connectivity.
 ```
 
 #### Puppet Agent Failure Alert
@@ -221,7 +225,17 @@ sum by (hostname) (rate({job="system-logs", severity="error"}[5m]))
 
 ### NFS Issues Timeline
 ```logql
-{job="system-logs", event_type="nfs_issue"} | line_format "{{.timestamp}} [{{.hostname}}] {{.message}}"
+{job="system-logs", event_type="nfs_issue"} | line_format "{{.timestamp}} [{{.hostname}}] NFS Server: {{.nfs_server}} - {{.message}}"
+```
+
+### NFS Issues by Server
+```logql
+sum by (nfs_server) (count_over_time({job="system-logs", event_type="nfs_issue"}[5m]))
+```
+
+### NFS Mount Failures with Server Info
+```logql
+{job="system-logs", event_type="nfs_issue", issue_type="mount_failure"} | line_format "{{.timestamp}} Server: {{.nfs_server}} Mount: {{.mount_point}} - {{.message}}"
 ```
 
 ### Filesystem Events

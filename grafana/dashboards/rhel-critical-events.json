@@ -61,11 +61,42 @@
       },
       {
         "id": 3,
-        "title": "NFS Issues",
+        "title": "NFS Issues by Server",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum by (nfs_server) (count_over_time({job=\"system-logs\", event_type=\"nfs_issue\"}[5m]))",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "displayName": "${__field.labels.nfs_server}"
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 10,
+        "title": "NFS Issues Timeline",
         "type": "logs",
         "targets": [
           {
-            "expr": "{job=\"system-logs\", event_type=\"nfs_issue\"}",
+            "expr": "{job=\"system-logs\", event_type=\"nfs_issue\"} | line_format \"{{.timestamp}} [{{.hostname}}] Server: {{.nfs_server}} Issue: {{.issue_type}} - {{.message}}\"",
             "refId": "A",
             "datasource": {
               "type": "loki",
@@ -79,7 +110,7 @@
           "wrapLogMessage": true,
           "sortOrder": "Descending"
         },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
       },
       {
         "id": 4,
@@ -101,7 +132,7 @@
           "wrapLogMessage": true,
           "sortOrder": "Descending"
         },
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
       },
       {
         "id": 5,
@@ -123,7 +154,25 @@
           "wrapLogMessage": true,
           "sortOrder": "Descending"
         },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"filesystem_readonly\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
       },
       {
         "id": 6,
@@ -167,7 +216,7 @@
           "wrapLogMessage": true,
           "sortOrder": "Descending"
         },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
       },
       {
         "id": 8,
@@ -218,7 +267,7 @@
             }
           }
         },
-        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
       }
     ],
     "time": {
@@ -240,6 +289,18 @@
           },
           "multi": true,
           "includeAll": true
+        },
+        {
+          "name": "nfs_server",
+          "type": "query",
+          "query": "label_values({job=\"system-logs\", event_type=\"nfs_issue\"}, nfs_server)",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "multi": true,
+          "includeAll": true,
+          "label": "NFS Server"
         }
       ]
     }
