@@ -1,0 +1,107 @@
+groups:
+  - name: rhel_filesystem_alerts
+    rules:
+      - alert: FilesystemReadOnly
+        expr: 'count_over_time({job="system-logs", event_type="filesystem_readonly"}[5m]) > 0'
+        for: 0m
+        labels:
+          severity: critical
+          service: filesystem
+          alert_type: readonly_filesystem
+          priority: P1
+        annotations:
+          summary: "Filesystem mounted read-only on {{ $labels.hostname }}"
+          description: "CRITICAL: Filesystem has been remounted read-only on {{ $labels.hostname }}. This typically indicates disk errors or corruption. Immediate attention required."
+          runbook_url: "https://wiki.company.com/runbooks/readonly-filesystem"
+          action_required: "Check disk health, filesystem integrity, and available space"
+
+      - alert: FilesystemCorruption
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(filesystem.*corrupt|superblock.*corrupt|bad.*block|fsck.*error|ext[234].*error).*"[10m]) > 0'
+        for: 0m
+        labels:
+          severity: critical
+          service: filesystem
+          alert_type: filesystem_corruption
+          priority: P1
+        annotations:
+          summary: "Filesystem corruption detected on {{ $labels.hostname }}"
+          description: "CRITICAL: Filesystem corruption detected on {{ $labels.hostname }}. Data integrity may be compromised."
+          runbook_url: "https://wiki.company.com/runbooks/filesystem-corruption"
+
+      - alert: DiskSpaceCritical
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(no space left|disk.*full|enospc).*"[5m]) > 0'
+        for: 1m
+        labels:
+          severity: critical
+          service: storage
+          alert_type: disk_full
+          priority: P1
+        annotations:
+          summary: "Disk space critical on {{ $labels.hostname }}"
+          description: "CRITICAL: No space left on device {{ $labels.hostname }}. Services may fail or filesystem may become read-only."
+          runbook_url: "https://wiki.company.com/runbooks/disk-space"
+
+      - alert: IOErrors
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(i/o error|input/output error|device.*not ready|medium error).*"[5m]) > 2'
+        for: 2m
+        labels:
+          severity: critical
+          service: storage
+          alert_type: io_error
+          priority: P1
+        annotations:
+          summary: "I/O errors detected on {{ $labels.hostname }}"
+          description: "CRITICAL: {{ $value }} I/O errors detected on {{ $labels.hostname }}. Disk hardware may be failing."
+          runbook_url: "https://wiki.company.com/runbooks/io-errors"
+
+      - alert: UnforeseenSystemErrors
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(unexpected|unforeseen|unknown.*error|fatal.*error|critical.*error|emergency).*"[10m]) > 1'
+        for: 3m
+        labels:
+          severity: warning
+          service: system
+          alert_type: unforeseen_error
+          priority: P2
+        annotations:
+          summary: "Unforeseen system errors on {{ $labels.hostname }}"
+          description: "{{ $value }} unforeseen or unexpected errors detected on {{ $labels.hostname }} in the last 10 minutes"
+          runbook_url: "https://wiki.company.com/runbooks/unforeseen-errors"
+
+      - alert: AzureVMMetadataErrors
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(azure.*metadata.*error|imds.*error|169.254.169.254.*timeout).*"[15m]) > 3'
+        for: 5m
+        labels:
+          severity: warning
+          service: azure
+          alert_type: metadata_error
+          priority: P2
+        annotations:
+          summary: "Azure VM metadata service errors on {{ $labels.hostname }}"
+          description: "{{ $value }} Azure metadata service errors detected on {{ $labels.hostname }}"
+          runbook_url: "https://wiki.company.com/runbooks/azure-metadata"
+
+      - alert: SystemdJournalErrors
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(journal.*corrupt|journal.*error|systemd.*journal.*failed).*"[10m]) > 0'
+        for: 2m
+        labels:
+          severity: warning
+          service: systemd
+          alert_type: journal_error
+          priority: P2
+        annotations:
+          summary: "Systemd journal errors on {{ $labels.hostname }}"
+          description: "Systemd journal errors detected on {{ $labels.hostname }}. Logging may be affected."
+          runbook_url: "https://wiki.company.com/runbooks/systemd-journal"
+
+      - alert: MemoryPressure
+        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(out of memory|oom.*killer|memory.*allocation.*failed|cannot allocate memory).*"[5m]) > 0'
+        for: 1m
+        labels:
+          severity: critical
+          service: memory
+          alert_type: memory_pressure
+          priority: P1
+        annotations:
+          summary: "Memory pressure detected on {{ $labels.hostname }}"
+          description: "Memory allocation issues or OOM killer activity detected on {{ $labels.hostname }}"
+          runbook_url: "https://wiki.company.com/runbooks/memory-pressure"

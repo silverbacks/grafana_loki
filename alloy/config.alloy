@@ -1,0 +1,248 @@
+// Grafana Alloy configuration for RHEL 8+ Azure VMs
+// Captures critical events from /var/log/messages including:
+// - System errors
+// - NFS not responding
+// - Puppet agent failures
+// - Filesystem read-only issues
+// - Other critical system events
+
+// Configure logging
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// File discovery for /var/log/messages
+discovery.file "system_logs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/messages",
+      job      = "system-logs",
+      host     = env("HOSTNAME"),
+      instance = env("HOSTNAME"),
+    },
+  ]
+}
+
+// Log reading component
+loki.source.file "system_messages" {
+  targets    = discovery.file.system_logs.targets
+  forward_to = [loki.process.filter_critical_events.receiver]
+
+  // Tail from end for new installations
+  tail_from_end = true
+  
+  // Position file to track read progress
+  positions_file = "/var/lib/alloy/positions.yaml"
+}
+
+// Process and filter logs for critical events
+loki.process "filter_critical_events" {
+  forward_to = [loki.write.cloud_loki.receiver]
+
+  stage.regex {
+    expression = "^(?P<timestamp>\\w+\\s+\\d+\\s+\\d+:\\d+:\\d+)\\s+(?P<hostname>\\S+)\\s+(?P<program>\\S+)(?:\\[(?P<pid>\\d+)\\])?:\\s*(?P<message>.*)"
+  }
+
+  stage.labels {
+    values = {
+      hostname = "",
+      program  = "",
+      pid      = "",
+    }
+  }
+
+  // Filter for critical system errors
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    // Match system errors
+    stage.regex {
+      expression = "(?i).*(error|failed|failure|critical|fatal|panic|segfault|oops|bug|warn).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "system_error",
+      }
+    }
+  }
+
+  // Filter for NFS issues
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(nfs.*not responding|nfs.*timeout|nfs.*connection.*refused|nfs.*server.*not responding|rpc.*timeout).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "nfs_issue",
+      }
+    }
+  }
+
+  // Filter for Puppet agent failures
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(puppet.*error|puppet.*failed|puppet.*could not|puppet.*connection.*failed|puppet.*timeout).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "puppet_failure",
+      }
+    }
+  }
+
+  // Filter for filesystem read-only issues
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(read.only.*file.*system|filesystem.*read.only|remounting.*read.only|ro.*remount).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "filesystem_readonly",
+      }
+    }
+  }
+
+  // Filter for disk/storage issues
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(no space left|disk.*full|i/o error|device.*not ready|input/output error).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "storage_issue",
+      }
+    }
+  }
+
+  // Filter for kernel issues
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(kernel.*panic|kernel.*oops|kernel.*bug|oom.*killer|memory.*error).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "kernel_issue",
+      }
+    }
+  }
+
+  // Filter for SSH/Security issues
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(authentication.*failure|failed.*login|invalid.*user|connection.*refused|permission.*denied).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "security_issue",
+      }
+    }
+  }
+
+  // Filter for systemd service failures
+  stage.match {
+    selector = "{job=\"system-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(systemd.*failed|service.*failed|unit.*failed|failed.*to.*start).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "service_failure",
+      }
+    }
+  }
+
+  // Add Azure-specific metadata
+  stage.labels {
+    values = {
+      cloud_provider = "azure",
+      os_family = "rhel",
+      log_source = "/var/log/messages",
+    }
+  }
+
+  // Add timestamp
+  stage.timestamp {
+    source = "timestamp"
+    format = "Jan _2 15:04:05"
+    location = "UTC"
+  }
+}
+
+// Write to Grafana Cloud Loki
+loki.write "cloud_loki" {
+  endpoint {
+    url = env("LOKI_ENDPOINT")
+    
+    basic_auth {
+      username = env("LOKI_USERNAME")
+      password = env("LOKI_PASSWORD")
+    }
+  }
+  
+  // External labels
+  external_labels = {
+    environment = env("ENVIRONMENT"),
+    region = env("AZURE_REGION"),
+    resource_group = env("AZURE_RESOURCE_GROUP"),
+    vm_name = env("HOSTNAME"),
+  }
+}
+
+// Scrape node_exporter metrics for additional context
+prometheus.scrape "node_exporter" {
+  targets = [
+    {"__address__" = "localhost:9100"},
+  ]
+  forward_to = [prometheus.remote_write.cloud_prometheus.receiver]
+  scrape_interval = "30s"
+  metrics_path = "/metrics"
+}
+
+// Write metrics to Grafana Cloud Prometheus (optional)
+prometheus.remote_write "cloud_prometheus" {
+  endpoint {
+    url = env("PROMETHEUS_ENDPOINT")
+    
+    basic_auth {
+      username = env("PROMETHEUS_USERNAME")
+      password = env("PROMETHEUS_PASSWORD")
+    }
+  }
+  
+  external_labels = {
+    environment = env("ENVIRONMENT"),
+    region = env("AZURE_REGION"),
+    resource_group = env("AZURE_RESOURCE_GROUP"),
+    vm_name = env("HOSTNAME"),
+  }
+}
