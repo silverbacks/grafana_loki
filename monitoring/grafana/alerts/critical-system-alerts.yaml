@@ -1,0 +1,88 @@
+groups:
+  - name: rhel_critical_system_alerts
+    rules:
+      - alert: SystemErrorsHigh
+        expr: 'count_over_time({job="system-logs", event_type="system_error"}[5m]) > 5'
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+          alert_type: system_error
+        annotations:
+          summary: "High number of system errors detected on {{ $labels.hostname }}"
+          description: "{{ $labels.hostname }} has generated {{ $value }} system errors in the last 5 minutes"
+          runbook_url: "https://wiki.company.com/runbooks/system-errors"
+
+      - alert: NFSNotResponding
+        expr: 'count_over_time({job="system-logs", event_type="nfs_issue"}[10m]) > 0'
+        for: 1m
+        labels:
+          severity: critical
+          service: nfs
+          alert_type: nfs_failure
+        annotations:
+          summary: "NFS issues detected on {{ $labels.hostname }}"
+          description: "NFS server {{ $labels.nfs_server | default "unknown" }} is experiencing issues on {{ $labels.hostname }}. Issue type: {{ $labels.issue_type | default "general" }}. Check NFS mounts and network connectivity."
+          runbook_url: "https://wiki.company.com/runbooks/nfs-issues"
+          nfs_server: "{{ $labels.nfs_server | default \"unknown\" }}"
+          mount_point: "{{ $labels.mount_point | default \"not specified\" }}"
+
+      - alert: PuppetAgentFailure
+        expr: 'count_over_time({job="system-logs", event_type="puppet_failure"}[30m]) > 2'
+        for: 5m
+        labels:
+          severity: warning
+          service: puppet
+          alert_type: puppet_failure
+        annotations:
+          summary: "Puppet agent failures on {{ $labels.hostname }}"
+          description: "{{ $labels.hostname }} has {{ $value }} puppet failures in the last 30 minutes"
+          runbook_url: "https://wiki.company.com/runbooks/puppet-failures"
+
+      - alert: KernelPanic
+        expr: 'count_over_time({job="system-logs", event_type="kernel_issue"}[5m]) > 0'
+        for: 0m
+        labels:
+          severity: critical
+          service: kernel
+          alert_type: kernel_panic
+        annotations:
+          summary: "Kernel issues detected on {{ $labels.hostname }}"
+          description: "Critical kernel issues (panic/oops/bug) detected on {{ $labels.hostname }}"
+          runbook_url: "https://wiki.company.com/runbooks/kernel-issues"
+
+      - alert: ServiceFailures
+        expr: 'count_over_time({job="system-logs", event_type="service_failure"}[15m]) > 3'
+        for: 5m
+        labels:
+          severity: warning
+          service: systemd
+          alert_type: service_failure
+        annotations:
+          summary: "Multiple service failures on {{ $labels.hostname }}"
+          description: "{{ $labels.hostname }} has {{ $value }} service failures in the last 15 minutes"
+          runbook_url: "https://wiki.company.com/runbooks/service-failures"
+
+      - alert: SecurityIssues
+        expr: 'count_over_time({job="system-logs", event_type="security_issue"}[10m]) > 10'
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+          alert_type: security_breach
+        annotations:
+          summary: "High number of security issues on {{ $labels.hostname }}"
+          description: "{{ $labels.hostname }} has {{ $value }} security-related events in the last 10 minutes"
+          runbook_url: "https://wiki.company.com/runbooks/security-issues"
+
+      - alert: StorageIssues
+        expr: 'count_over_time({job="system-logs", event_type="storage_issue"}[5m]) > 0'
+        for: 1m
+        labels:
+          severity: critical
+          service: storage
+          alert_type: storage_failure
+        annotations:
+          summary: "Storage issues detected on {{ $labels.hostname }}"
+          description: "Storage problems (disk full, I/O errors) detected on {{ $labels.hostname }}"
+          runbook_url: "https://wiki.company.com/runbooks/storage-issues"

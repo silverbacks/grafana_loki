@@ -1,0 +1,56 @@
+[Unit]
+Description=Grafana Alloy
+Documentation=https://grafana.com/docs/alloy/latest/
+Wants=network-online.target
+After=network-online.target
+Requires=local-fs.target
+After=local-fs.target
+
+[Service]
+Type=simple
+User=alloy
+Group=alloy
+ExecStart=/usr/local/bin/alloy run /etc/alloy/config.alloy --storage.path=/var/lib/alloy/data
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+KillMode=mixed
+
+# Security settings
+NoNewPrivileges=yes
+DynamicUser=false
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectProc=invisible
+RemoveIPC=yes
+SystemCallArchitectures=native
+
+# File system permissions
+ReadWritePaths=/var/lib/alloy
+ReadOnlyPaths=/var/log/messages
+ReadOnlyPaths=/etc/alloy
+
+# Resource limits
+LimitNOFILE=8192
+LimitNPROC=8192
+
+# Environment variables
+Environment=HOSTNAME=%H
+EnvironmentFile=-/etc/default/alloy
+
+[Install]
+WantedBy=multi-user.target

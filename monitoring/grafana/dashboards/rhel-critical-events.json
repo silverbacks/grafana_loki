@@ -1,0 +1,308 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "RHEL 8+ Azure VM Critical Events Dashboard",
+    "tags": ["rhel", "azure", "system-monitoring", "critical-events"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Critical Events Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "count by (event_type) (count_over_time({job=\"system-logs\", severity=~\"critical|error\"}[5m]))",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "System Errors Timeline",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"system_error\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "showCommonLabels": false,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "NFS Issues by Server",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum by (nfs_server) (count_over_time({job=\"system-logs\", event_type=\"nfs_issue\"}[5m]))",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "displayName": "${__field.labels.nfs_server}"
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 10,
+        "title": "NFS Issues Timeline",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"nfs_issue\"} | line_format \"{{.timestamp}} [{{.hostname}}] Server: {{.nfs_server}} Issue: {{.issue_type}} - {{.message}}\"",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Puppet Agent Failures",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"puppet_failure\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Filesystem Read-Only Issues",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"filesystem_readonly\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"filesystem_readonly\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Kernel Issues",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"kernel_issue\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Service Failures",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"service_failure\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Security Issues",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"system-logs\", event_type=\"security_issue\"}",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Error Rate by Event Type",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (event_type) (rate({job=\"system-logs\", severity=~\"critical|error\"}[5m]))",
+            "refId": "A",
+            "datasource": {
+              "type": "loki",
+              "uid": "${DS_LOKI}"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "pointSize": 5,
+              "showPoints": "auto"
+            },
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 0,
+    "templating": {
+      "list": [
+        {
+          "name": "hostname",
+          "type": "query",
+          "query": "label_values({job=\"system-logs\"}, hostname)",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "nfs_server",
+          "type": "query",
+          "query": "label_values({job=\"system-logs\", event_type=\"nfs_issue\"}, nfs_server)",
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "multi": true,
+          "includeAll": true,
+          "label": "NFS Server"
+        }
+      ]
+    }
+  }
+}
