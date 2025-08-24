@@ -1,14 +1,14 @@
-# Grafana Loki Monitoring for RHEL 8+ Azure VMs
+# Grafana Loki Monitoring for RHEL 8+ Systems
 
 ## Overview
 
-This monitoring solution provides comprehensive log collection and alerting for critical system events on RHEL 8+ Azure Virtual Machines. It uses Grafana Alloy to collect logs from `/var/log/messages` and sends them to Grafana Cloud Loki for analysis and alerting.
+This monitoring solution provides comprehensive log collection and alerting for critical system events on RHEL 8+ systems. It uses Grafana Alloy to collect logs from `/var/log/messages` and sends them to Grafana Cloud Loki for analysis and alerting.
 
 ## Architecture
 
 ```mermaid
 graph TB
-    A[RHEL 8+ Azure VM] --> B[/var/log/messages]
+    A[RHEL 8+ System] --> B[/var/log/messages]
     B --> C[Grafana Alloy]
     C --> D[Grafana Cloud Loki]
     D --> E[Grafana Dashboard]
@@ -34,7 +34,6 @@ graph TB
 - **Service Failures**: Systemd service failures
 - **Security Issues**: Authentication failures, permission denied
 - **Storage Issues**: Disk full, I/O errors, device not ready
-- **Azure-Specific**: Metadata service errors, VM-specific issues
 
 ### Alert Severity Levels
 - **Critical (P1)**: Immediate attention required (filesystem read-only, kernel panic)
@@ -101,8 +100,7 @@ LOKI_ENDPOINT=https://logs-prod-us-central1.grafana.net/loki/api/v1/push
 LOKI_USERNAME=your_loki_instance_id
 LOKI_PASSWORD=your_grafana_cloud_api_key
 ENVIRONMENT=production
-AZURE_REGION=your_azure_region
-AZURE_RESOURCE_GROUP=your_resource_group
+SERVER_TIMEZONE=Local
 ```
 
 ### Step 4: Restart Service

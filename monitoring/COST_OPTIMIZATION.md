@@ -41,7 +41,7 @@ stage.keep {
 
 ## Cost Impact Examples
 
-### Typical RHEL 8+ Azure VM
+### Typical RHEL 8+ System
 
 **Without Filtering:**
 - Average `/var/log/messages` size: 50-500 MB/day

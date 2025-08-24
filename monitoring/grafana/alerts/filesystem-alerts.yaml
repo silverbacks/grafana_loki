@@ -67,19 +67,6 @@ groups:
           description: "{{ $value }} unforeseen or unexpected errors detected on {{ $labels.hostname }} in the last 10 minutes"
           runbook_url: "https://wiki.company.com/runbooks/unforeseen-errors"
 
-      - alert: AzureVMMetadataErrors
-        expr: 'count_over_time({job="system-logs"} |~ "(?i).*(azure.*metadata.*error|imds.*error|169.254.169.254.*timeout).*"[15m]) > 3'
-        for: 5m
-        labels:
-          severity: warning
-          service: azure
-          alert_type: metadata_error
-          priority: P2
-        annotations:
-          summary: "Azure VM metadata service errors on {{ $labels.hostname }}"
-          description: "{{ $value }} Azure metadata service errors detected on {{ $labels.hostname }}"
-          runbook_url: "https://wiki.company.com/runbooks/azure-metadata"
-
       - alert: SystemdJournalErrors
         expr: 'count_over_time({job="system-logs"} |~ "(?i).*(journal.*corrupt|journal.*error|systemd.*journal.*failed).*"[10m]) > 0'
         for: 2m

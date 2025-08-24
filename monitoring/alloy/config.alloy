@@ -1,4 +1,4 @@
-// Grafana Alloy configuration for RHEL 8+ Azure VMs
+// Grafana Alloy configuration for RHEL 8+ systems
 // Captures critical events from /var/log/messages including:
 // - System errors
 // - NFS not responding
@@ -261,10 +261,9 @@ loki.process "filter_critical_events" {
     }
   }
 
-  // Add Azure-specific metadata
+  // Add system metadata
   stage.labels {
     values = {
-      cloud_provider = "azure",
       os_family = "rhel",
       log_source = "/var/log/messages",
     }
@@ -304,9 +303,7 @@ loki.write "cloud_loki" {
   // External labels
   external_labels = {
     environment = env("ENVIRONMENT"),
-    region = env("AZURE_REGION"),
-    resource_group = env("AZURE_RESOURCE_GROUP"),
-    vm_name = env("HOSTNAME"),
+    hostname = env("HOSTNAME"),
   }
 }
 
@@ -333,8 +330,6 @@ prometheus.remote_write "cloud_prometheus" {
   
   external_labels = {
     environment = env("ENVIRONMENT"),
-    region = env("AZURE_REGION"),
-    resource_group = env("AZURE_RESOURCE_GROUP"),
-    vm_name = env("HOSTNAME"),
+    hostname = env("HOSTNAME"),
   }
 }

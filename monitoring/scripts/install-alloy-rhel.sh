@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Grafana Alloy Installation Script for RHEL 8+ Azure VMs
+# Grafana Alloy Installation Script for RHEL 8+ Systems
 # This script installs and configures Grafana Alloy for log collection
 # from /var/log/messages with critical event filtering
 
@@ -61,28 +61,6 @@ check_rhel_version() {
     fi
     
     log_success "RHEL version $version detected"
-}
-
-# Check if running on Azure
-check_azure() {
-    if curl -s -H "Metadata:true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" &>/dev/null; then
-        log_success "Azure VM detected"
-        return 0
-    else
-        log_warning "Not running on Azure VM or metadata service unavailable"
-        return 1
-    fi
-}
-
-# Get Azure metadata
-get_azure_metadata() {
-    local metadata_url="http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-    local compute_metadata=$(curl -s -H "Metadata:true" "$metadata_url/compute")
-    
-    if [[ -n "$compute_metadata" ]]; then
-        echo "$compute_metadata" > /tmp/azure-metadata.json
-        log_info "Azure metadata saved to /tmp/azure-metadata.json"
-    fi
 }
 
 # Create alloy user and group
@@ -282,14 +260,10 @@ start_service() {
 
 # Main installation function
 main() {
-    log_info "Starting Grafana Alloy installation for RHEL 8+ Azure VMs..."
+    log_info "Starting Grafana Alloy installation for RHEL 8+ systems..."
     
     check_root
     check_rhel_version
-    
-    if check_azure; then
-        get_azure_metadata
-    fi
     
     create_user
     create_directories

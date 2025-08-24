@@ -1,8 +1,8 @@
 {
   "dashboard": {
     "id": null,
-    "title": "RHEL 8+ Azure VM Critical Events Dashboard",
-    "tags": ["rhel", "azure", "system-monitoring", "critical-events"],
+    "title": "RHEL 8+ Critical Events Dashboard",
+    "tags": ["rhel", "system-monitoring", "critical-events"],
     "style": "dark",
     "timezone": "browser",
     "panels": [

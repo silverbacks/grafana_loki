@@ -268,32 +268,18 @@ Document your timezone strategy:
 - **Recommendation:** Standardize on UTC
 - **Server setup:** Migrate all to UTC during transition
 
-## Azure-Specific Considerations
+## Cloud-Specific Considerations
 
-### Azure VM Timezone
+### Cloud VM Timezone
 
-Azure VMs default to UTC, but you can change:
+Cloud VMs often default to UTC, but you can change:
 
 ```bash
-# Check Azure VM timezone
+# Check VM timezone
 timedatectl status
 
 # Set to local timezone if needed
 sudo timedatectl set-timezone America/New_York
-```
-
-### Regional Deployments
-
-```bash
-# Set timezone based on Azure region
-case $AZURE_REGION in
-  "eastus"|"centralus"|"westus") 
-    sudo timedatectl set-timezone America/New_York ;;
-  "uksouth"|"ukwest"|"northeurope")
-    sudo timedatectl set-timezone Europe/London ;;
-  "japaneast"|"japanwest")
-    sudo timedatectl set-timezone Asia/Tokyo ;;
-esac
 ```
 
 ---

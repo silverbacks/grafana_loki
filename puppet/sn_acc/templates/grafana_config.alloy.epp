@@ -1,0 +1,310 @@
+<%- | Hash $config | -%>
+// Grafana Alloy configuration for RHEL 8+ systems
+// Managed by Puppet - DO NOT EDIT MANUALLY
+// Captures critical events from multiple log sources based on server personality
+
+// Configure logging
+logging {
+  level  = "<%= $config['log_level'] %>"
+  format = "logfmt"
+}
+
+<% if $config['log_sources'] and !empty($config['log_sources']) { -%>
+// File discovery for log sources
+discovery.file "system_logs" {
+  path_targets = [
+<% $config['log_sources'].each |$log_source| { -%>
+    {
+      __path__ = "<%= $log_source['path'] %>",
+      job      = "<%= $log_source['job'] %>",
+      host     = env("HOSTNAME"),
+      instance = env("HOSTNAME"),
+      log_type = "<%= $log_source['type'] %>",
+<% if $log_source['service'] { -%>
+      service  = "<%= $log_source['service'] %>",
+<% } -%>
+    },
+<% } -%>
+  ]
+}
+<% } -%>
+
+// Log reading component - only process critical events
+loki.source.file "system_messages" {
+  targets    = discovery.file.system_logs.targets
+  forward_to = [loki.process.filter_critical_events.receiver]
+
+  // Tail from end for new installations
+  tail_from_end = <%= $config['tail_from_end'] %>
+  
+  // Position file to track read progress
+  positions_file = "<%= $config['positions_file'] %>"
+}
+
+// Process and filter logs for critical events
+loki.process "filter_critical_events" {
+  forward_to = [loki.write.cloud_loki.receiver]
+
+  stage.regex {
+    expression = "^(?P<timestamp>\\w+\\s+\\d+\\s+\\d+:\\d+:\\d+)\\s+(?P<hostname>\\S+)\\s+(?P<program>\\S+)(?:\\[(?P<pid>\\d+)\\])?:\\s*(?P<message>.*)"
+  }
+
+  stage.labels {
+    values = {
+      hostname = "",
+      program  = "",
+      pid      = "",
+    }
+  }
+
+  // Filter for critical system errors
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*(error|failed|failure|critical|fatal|panic|segfault|oops|bug|warn).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "system_error",
+      }
+    }
+  }
+
+  // Filter for NFS issues with server extraction
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*server\\s+([0-9a-zA-Z.-]+).*not responding.*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "nfs_issue",
+        nfs_server = "$1",
+        issue_type = "server_not_responding",
+      }
+    }
+  }
+
+  // Filter for filesystem read-only issues
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*(read.only.*file.*system|filesystem.*read.only|remounting.*read.only|ro.*remount).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "filesystem_readonly",
+      }
+    }
+  }
+
+<% if $config['personalities'].any |$personality| { $personality == 'puppet_server' } { -%>
+  // Filter for Puppet server specific issues
+  stage.match {
+    selector = "{job=\"puppet-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(puppet.*error|puppet.*failed|puppet.*could not|certificate.*error|ca.*error|compilation.*failed).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "puppet_server_error",
+        service = "puppet_enterprise",
+      }
+    }
+  }
+
+  // Filter for Puppet agent run failures
+  stage.match {
+    selector = "{job=\"puppet-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(agent.*run.*failed|node.*failed|catalog.*compilation.*failed).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "puppet_agent_failure",
+        service = "puppet_enterprise",
+      }
+    }
+  }
+
+  // Filter for Puppet certificate issues
+  stage.match {
+    selector = "{job=\"puppet-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(certificate.*revoked|certificate.*expired|ssl.*error|ca.*verify.*failed).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "puppet_certificate_issue",
+        service = "puppet_enterprise",
+      }
+    }
+  }
+<% } -%>
+
+<% if $config['personalities'].any |$personality| { $personality == 'ldap_server' } { -%>
+  // Filter for LDAP authentication failures
+  stage.match {
+    selector = "{job=\"ldap-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(authentication.*failed|bind.*failed|invalid.*credentials|ldap.*error).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "ldap_auth_failure",
+        service = "ldap",
+      }
+    }
+  }
+
+  // Filter for LDAP connection issues
+  stage.match {
+    selector = "{job=\"ldap-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(connection.*lost|ldap.*timeout|server.*unreachable|directory.*unavailable).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "ldap_connection_issue",
+        service = "ldap",
+      }
+    }
+  }
+
+  // Filter for LDAP replication issues
+  stage.match {
+    selector = "{job=\"ldap-logs\"}"
+    
+    stage.regex {
+      expression = "(?i).*(replication.*failed|sync.*error|replica.*out.*of.*sync).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "ldap_replication_issue",
+        service = "ldap",
+      }
+    }
+  }
+<% } -%>
+
+  // General Puppet agent failures (for all systems)
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*(puppet.*error|puppet.*failed|puppet.*could not|puppet.*connection.*failed|puppet.*timeout).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "warning",
+        event_type = "puppet_failure",
+      }
+    }
+  }
+
+  // Filter for kernel issues
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*(kernel.*panic|kernel.*oops|kernel.*bug|oom.*killer|memory.*error).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "critical",
+        event_type = "kernel_issue",
+      }
+    }
+  }
+
+  // Filter for systemd service failures
+  stage.match {
+    selector = "{job=~\"system-logs|messages\"}"
+    
+    stage.regex {
+      expression = "(?i).*(systemd.*failed|service.*failed|unit.*failed|failed.*to.*start).*"
+    }
+    
+    stage.labels {
+      values = {
+        severity = "error",
+        event_type = "service_failure",
+      }
+    }
+  }
+
+  // Add system metadata
+  stage.labels {
+    values = {
+      os_family = "rhel",
+<% if $config['personalities'] and !empty($config['personalities']) { -%>
+      server_personalities = "<%= $config['personalities'].join(',') %>",
+<% } -%>
+      managed_by = "puppet",
+    }
+  }
+
+  // Add timestamp with configurable timezone handling
+  stage.timestamp {
+    source = "timestamp"
+    format = "Jan _2 15:04:05"
+    location = "<%= $config['timezone_location'] %>"
+  }
+
+<% if $config['enable_cost_optimization'] { -%>
+  // KEEP: Only forward critical events to save storage costs
+  stage.keep {
+    expression = ".+"  // Keep if event_type has any value (not empty)
+    source = "event_type"  // Check the event_type label
+  }
+<% } -%>
+}
+
+// Write to Grafana Cloud Loki
+loki.write "cloud_loki" {
+  endpoint {
+    url = env("LOKI_ENDPOINT")
+    
+    basic_auth {
+      username = env("LOKI_USERNAME")
+      password = env("LOKI_PASSWORD")
+    }
+  }
+  
+  // External labels
+  external_labels = {
+    environment = env("ENVIRONMENT"),
+    hostname = env("HOSTNAME"),
+<% if $config['personalities'] and !empty($config['personalities']) { -%>
+    server_role = "<%= $config['personalities'][0] %>",
+<% } -%>
+  }
+}

@@ -49,8 +49,6 @@ LOKI_PASSWORD=glc_your_api_key_here
 
 # Environment Configuration
 ENVIRONMENT=production
-AZURE_REGION=eastus
-AZURE_RESOURCE_GROUP=your-resource-group
 
 # Timezone Configuration for Multi-Location Servers
 # "Local" = Use server's system timezone (recommended for global deployments)
@@ -60,7 +58,6 @@ SERVER_TIMEZONE=Local
 
 # Optional: Custom labels
 CUSTOM_TEAM_LABEL=infrastructure
-CUSTOM_ENVIRONMENT_LABEL=azure-rhel
 ```
 
 ### Important: Timezone Handling
