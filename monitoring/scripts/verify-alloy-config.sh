@@ -42,31 +42,31 @@ else
     echo -e "   ${YELLOW}⚠${NC} Alloy not installed - syntax check skipped"
 fi
 
-# Check 3: Verify stage.keep configuration
-echo -e "${BLUE}3. Verifying stage.keep configuration...${NC}"
+# Check 3: Verify stage.drop configuration
+echo -e "${BLUE}3. Verifying stage.drop configuration...${NC}"
 
-# Extract the stage.keep block
-KEEP_BLOCK=$(sed -n '/stage.keep {/,/}/p' "$ALLOY_CONFIG")
+# Extract the stage.drop block
+DROP_BLOCK=$(sed -n '/stage.drop {/,/}/p' "$ALLOY_CONFIG")
 
-if [[ -n "$KEEP_BLOCK" ]]; then
-    echo -e "   ${GREEN}✓${NC} stage.keep block found:"
-    echo "$KEEP_BLOCK" | sed 's/^/     /'
+if [[ -n "$DROP_BLOCK" ]]; then
+    echo -e "   ${GREEN}✓${NC} stage.drop block found:"
+    echo "$DROP_BLOCK" | sed 's/^/     /'
     echo
     
-    # Verify the keep configuration
-    if echo "$KEEP_BLOCK" | grep -q 'source = "event_type"'; then
+    # Verify the drop configuration
+    if echo "$DROP_BLOCK" | grep -q 'source = "event_type"'; then
         echo -e "   ${GREEN}✓${NC} Correctly configured to filter on event_type label"
     else
         echo -e "   ${RED}✗${NC} Missing or incorrect source configuration"
     fi
     
-    if echo "$KEEP_BLOCK" | grep -q 'expression = ".+"'; then
-        echo -e "   ${GREEN}✓${NC} Correctly configured to keep non-empty values"
+    if echo "$DROP_BLOCK" | grep -q 'expression = ""'; then
+        echo -e "   ${GREEN}✓${NC} Correctly configured to drop empty values"
     else
         echo -e "   ${RED}✗${NC} Missing or incorrect expression configuration"
     fi
 else
-    echo -e "   ${RED}✗${NC} stage.keep block not found in configuration"
+    echo -e "   ${RED}✗${NC} stage.drop block not found in configuration"
     exit 1
 fi
 
@@ -104,14 +104,14 @@ fi
 # Check 5: Verify filter logic flow
 echo -e "${BLUE}5. Verifying filter logic flow...${NC}"
 
-# Check that stage.keep comes after stage.match blocks
-KEEP_LINE=$(grep -n "stage.keep" "$ALLOY_CONFIG" | head -1 | cut -d: -f1)
+# Check that stage.drop comes after stage.match blocks
+DROP_LINE=$(grep -n "stage.drop" "$ALLOY_CONFIG" | head -1 | cut -d: -f1)
 LAST_MATCH_LINE=$(grep -n "stage.match" "$ALLOY_CONFIG" | tail -1 | cut -d: -f1)
 
-if [[ $KEEP_LINE -gt $LAST_MATCH_LINE ]]; then
-    echo -e "   ${GREEN}✓${NC} stage.keep correctly positioned after all stage.match blocks"
+if [[ $DROP_LINE -gt $LAST_MATCH_LINE ]]; then
+    echo -e "   ${GREEN}✓${NC} stage.drop correctly positioned after all stage.match blocks"
 else
-    echo -e "   ${RED}✗${NC} stage.keep should come after all stage.match blocks"
+    echo -e "   ${RED}✗${NC} stage.drop should come after all stage.match blocks"
 fi
 
 # Check 6: Test scenarios
@@ -190,7 +190,7 @@ echo -e "   ${GREEN}✓${NC} Total stage.match filters: $FILTER_COUNT"
 COMPONENTS=(
     "loki.source.file"
     "loki.process"
-    "stage.keep"
+    "stage.drop"
     "loki.write"
 )
 
@@ -208,7 +208,7 @@ echo -e "${BLUE}=== Verification Complete ===${NC}"
 # Summary
 echo -e "${GREEN}Summary:${NC}"
 echo "- Configuration file is syntactically valid"
-echo "- stage.keep is properly configured to filter on event_type"
+echo "- stage.drop is properly configured to filter on event_type"
 echo "- Only logs with event_type labels will be forwarded to Loki"
 echo "- Non-critical messages will be automatically dropped"
 echo "- Estimated cost savings: 90-95% reduction in log volume"

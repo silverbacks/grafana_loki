@@ -9,8 +9,8 @@ You're correct that `ALLOY_DROP_NON_CRITICAL` is **not recognized** by Grafana A
 The configuration now **always** filters logs to only send critical events:
 
 ```alloy
-stage.keep {
-  expression = ".+"  // Keep if event_type has any value
+stage.drop {
+  expression = ""  // Drop if event_type is empty
   source = "event_type"  // Check the event_type label
 }
 ```
@@ -34,8 +34,8 @@ sudo cp /path/to/config.alloy /etc/alloy/config.alloy
 
 #### B) Debug Config (No Filtering)
 ```alloy
-// Same config but without the stage.keep section
-// Comment out or remove the stage.keep block
+// Same config but without the stage.drop section
+// Comment out or remove the stage.drop block
 ```
 
 ### Option 2: Manual Toggle
@@ -44,15 +44,15 @@ To temporarily disable filtering for debugging:
 
 #### Disable Filtering (Keep All Logs)
 ```bash
-# Comment out the keep stage
-sudo sed -i '/stage.keep {/,/}/s/^/# /' /etc/alloy/config.alloy
+# Comment out the drop stage
+sudo sed -i '/stage.drop {/,/}/s/^/# /' /etc/alloy/config.alloy
 sudo systemctl restart alloy
 ```
 
 #### Re-enable Filtering
 ```bash
-# Uncomment the keep stage
-sudo sed -i '/# stage.keep {/,/# }/s/^# //' /etc/alloy/config.alloy
+# Uncomment the drop stage
+sudo sed -i '/# stage.drop {/,/# }/s/^# //' /etc/alloy/config.alloy
 sudo systemctl restart alloy
 ```
 
@@ -64,8 +64,8 @@ Create a separate debug config without filtering:
 # Create debug version
 sudo cp /etc/alloy/config.alloy /etc/alloy/config-debug.alloy
 
-# Remove the keep stage from debug version
-sudo sed -i '/stage.keep {/,/}/d' /etc/alloy/config-debug.alloy
+# Remove the drop stage from debug version
+sudo sed -i '/stage.drop {/,/}/d' /etc/alloy/config-debug.alloy
 
 # Switch to debug mode
 sudo systemctl stop alloy
@@ -112,7 +112,7 @@ When you need to see all logs:
 ```bash
 # Create debug config (one-time setup)
 sudo cp /etc/alloy/config.alloy /etc/alloy/config-debug.alloy
-sudo sed -i '/stage.keep {/,/}/d' /etc/alloy/config-debug.alloy
+sudo sed -i '/stage.drop {/,/}/d' /etc/alloy/config-debug.alloy
 
 # Switch to debug mode when needed
 sudo systemctl stop alloy
@@ -133,7 +133,7 @@ Grafana Alloy doesn't support conditional logic based on environment variables i
 
 - ✅ **String values**: `url = env("LOKI_ENDPOINT")`
 - ✅ **Credentials**: `password = env("LOKI_PASSWORD")`
-- ❌ **Conditional blocks**: Can't conditionally include/exclude `stage.keep`
+- ❌ **Conditional blocks**: Can't conditionally include/exclude `stage.drop`
 - ❌ **Boolean logic**: Can't use `if env("DROP_LOGS") == "true"`
 
 ## Current Status

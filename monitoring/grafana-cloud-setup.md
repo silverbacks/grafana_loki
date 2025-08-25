@@ -342,7 +342,7 @@ The configuration is **automatically optimized** to minimize Grafana Cloud Loki 
 ```bash
 # Create debug config (one-time)
 sudo cp /etc/alloy/config.alloy /etc/alloy/config-debug.alloy
-sudo sed -i '/stage.keep {/,/}/d' /etc/alloy/config-debug.alloy
+sudo sed -i '/stage.drop {/,/}/d' /etc/alloy/config-debug.alloy
 
 # Switch to debug mode
 sudo systemctl stop alloy
