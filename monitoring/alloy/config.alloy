@@ -13,20 +13,18 @@ logging {
 }
 
 // File discovery for /var/log/messages
-discovery.file "system_logs" {
-  targets = [
-    {
-      __path__ = "/var/log/messages",
-      job      = "system-logs",
-      host     = env("HOSTNAME"),
-      instance = env("HOSTNAME"),
-    },
-  ]
+local.file_match "system_logs" {
+  path_targets = [{
+    __path__ = "/var/log/messages",
+    job      = "system-logs",
+    host     = env("HOSTNAME"),
+    instance = env("HOSTNAME"),
+  }]
 }
 
 // Log reading component - only process critical events
 loki.source.file "system_messages" {
-  targets    = discovery.file.system_logs.targets
+  targets    = local.file_match.system_logs.targets
   forward_to = [loki.process.filter_critical_events.receiver]
 
   // Tail from end for new installations

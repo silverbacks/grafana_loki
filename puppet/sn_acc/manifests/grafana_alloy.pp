@@ -5,7 +5,6 @@ class sn_acc::grafana_alloy (
   Array[String] $personalities = [],
   String $log_level = 'info',
   Boolean $tail_from_end = true,
-  String $positions_file = '/var/lib/alloy/positions.yaml',
   String $timezone_location = 'Local',
   Boolean $enable_cost_optimization = true,
 ) {
@@ -77,7 +76,6 @@ class sn_acc::grafana_alloy (
     'personalities'            => $personalities,
     'log_sources'              => $all_log_sources,
     'tail_from_end'            => $tail_from_end,
-    'positions_file'           => $positions_file,
     'timezone_location'        => $timezone_location,
     'enable_cost_optimization' => $enable_cost_optimization,
   }
@@ -96,14 +94,6 @@ class sn_acc::grafana_alloy (
   service { 'alloy':
     ensure => running,
     enable => true,
-  }
-
-  # Ensure the positions directory exists
-  file { dirname($positions_file):
-    ensure => directory,
-    owner  => 'alloy',
-    group  => 'alloy',
-    mode   => '0755',
   }
 }
 
