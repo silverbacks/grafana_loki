@@ -193,9 +193,18 @@ curl http://localhost:9273/metrics | grep azure
 #### Metadata Collection
 - **Non-sensitive VM information** from Azure IMDS only
 - Essential configuration details (location, size, OS type)
-- Platform fault and update domains
+- **Logical Zone**: Azure Availability Zone assignment
+- **Physical Placement**: Platform fault and update domains
+- **Placement Groups**: VM Scale Set and placement group information
 - **Excluded sensitive fields**: customData, userData, publicKeys, resourceId, subscriptionId, vmId
 - **Rate-limited collection**: 5-minute intervals to respect IMDS limits
+
+#### Zone Information Monitoring
+- **Logical Zone**: Azure Availability Zone (1, 2, 3, or empty for non-zonal)
+- **Physical Fault Domain**: Hardware isolation boundary
+- **Physical Update Domain**: Maintenance coordination boundary
+- **Placement Group ID**: Scale set placement group identifier
+- **Zone Health**: Availability and configuration status
 
 #### Health Monitoring
 - IMDS connectivity checks

@@ -714,7 +714,11 @@
               "hostname": "Hostname",
               "location": "Location",
               "vmSize": "VM Size",
-              "zone": "Zone",
+              "zone": "Logical Zone",
+              "logical_zone": "Logical Zone",
+              "physical_fault_domain": "Physical Fault Domain",
+              "physical_update_domain": "Physical Update Domain",
+              "placement_group_id": "Placement Group",
               "resourceGroupName": "Resource Group",
               "osType": "OS Type"
             }
