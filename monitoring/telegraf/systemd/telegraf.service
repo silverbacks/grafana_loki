@@ -1,0 +1,42 @@
+[Unit]
+Description=Telegraf - Azure Scheduled Events Monitoring
+Documentation=https://github.com/influxdata/telegraf
+Wants=network-online.target
+After=network-online.target
+AssertFileIsExecutable=/usr/bin/telegraf
+AssertFileNotEmpty=/etc/telegraf/telegraf.conf
+
+[Service]
+EnvironmentFile=-/etc/default/telegraf
+User=telegraf
+Group=telegraf
+ExecStart=/usr/bin/telegraf --config /etc/telegraf/telegraf.conf --config-directory /etc/telegraf/conf.d
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=5
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/telegraf /var/lib/telegraf
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RemoveIPC=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Network access for Azure IMDS (no special capabilities needed)
+# Azure IMDS endpoint (169.254.169.254) is accessible via standard HTTP
+PrivateNetwork=false
+
+[Install]
+WantedBy=multi-user.target

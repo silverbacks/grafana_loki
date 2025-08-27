@@ -1,0 +1,295 @@
+# Azure Scheduled Events Alert Rules
+# Configure these in Grafana Cloud Alerting
+
+groups:
+  - name: azure_scheduled_events
+    interval: 30s
+    rules:
+      # Critical: VM Preemption Event
+      - alert: AzureVMPreemptionScheduled
+        expr: azure_scheduled_events_event_count{EventType="Preempt"} > 0
+        for: 0s
+        labels:
+          severity: critical
+          service: azure_vm
+          alert_type: vm_preemption
+          team: infrastructure
+        annotations:
+          summary: "Azure VM preemption scheduled on {{ $labels.hostname }}"
+          description: |
+            CRITICAL: Azure VM {{ $labels.hostname }} has a preemption event scheduled.
+            Event ID: {{ $labels.EventId }}
+            Event Status: {{ $labels.EventStatus }}
+            Maintenance Type: {{ $labels.maintenance_type }}
+            
+            This indicates the VM may be stopped soon. Take immediate action:
+            1. Save any critical work
+            2. Consider migrating workloads
+            3. Check for spot instance replacement
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/spot-vms"
+
+      # Critical: VM Freeze Event
+      - alert: AzureVMFreezeScheduled
+        expr: azure_scheduled_events_event_count{EventType="Freeze"} > 0
+        for: 0s
+        labels:
+          severity: critical
+          service: azure_vm
+          alert_type: vm_freeze
+          team: infrastructure
+        annotations:
+          summary: "Azure VM freeze scheduled on {{ $labels.hostname }}"
+          description: |
+            CRITICAL: Azure VM {{ $labels.hostname }} has a freeze event scheduled.
+            Event ID: {{ $labels.EventId }}
+            Event Status: {{ $labels.EventStatus }}
+            
+            The VM will be temporarily paused. This may cause:
+            - Application timeouts
+            - Connection drops
+            - Service disruptions
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/scheduled-events"
+
+      # High: VM Reboot Event
+      - alert: AzureVMRebootScheduled
+        expr: azure_scheduled_events_event_count{EventType="Reboot"} > 0
+        for: 30s
+        labels:
+          severity: high
+          service: azure_vm
+          alert_type: vm_reboot
+          team: infrastructure
+        annotations:
+          summary: "Azure VM reboot scheduled on {{ $labels.hostname }}"
+          description: |
+            HIGH: Azure VM {{ $labels.hostname }} has a reboot event scheduled.
+            Event ID: {{ $labels.EventId }}
+            Event Status: {{ $labels.EventStatus }}
+            Maintenance Type: {{ $labels.maintenance_type }}
+            
+            Recommended actions:
+            1. Save application state
+            2. Gracefully stop services
+            3. Notify stakeholders
+            4. Monitor for completion
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/maintenance-and-updates"
+
+      # High: VM Redeploy Event
+      - alert: AzureVMRedeployScheduled
+        expr: azure_scheduled_events_event_count{EventType="Redeploy"} > 0
+        for: 30s
+        labels:
+          severity: high
+          service: azure_vm
+          alert_type: vm_redeploy
+          team: infrastructure
+        annotations:
+          summary: "Azure VM redeploy scheduled on {{ $labels.hostname }}"
+          description: |
+            HIGH: Azure VM {{ $labels.hostname }} has a redeploy event scheduled.
+            Event ID: {{ $labels.EventId }}
+            Event Status: {{ $labels.EventStatus }}
+            
+            VM will be moved to different hardware. This may cause:
+            - Extended downtime
+            - IP address changes
+            - Temporary storage loss
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/maintenance-and-updates"
+
+      # Warning: Multiple Scheduled Events
+      - alert: AzureMultipleScheduledEvents
+        expr: count by (hostname) (azure_scheduled_events_event_count) > 1
+        for: 1m
+        labels:
+          severity: warning
+          service: azure_vm
+          alert_type: multiple_events
+          team: infrastructure
+        annotations:
+          summary: "Multiple scheduled events on {{ $labels.hostname }}"
+          description: |
+            WARNING: Multiple Azure scheduled events detected on {{ $labels.hostname }}.
+            
+            This may indicate complex maintenance operations.
+            Review all events and plan accordingly.
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/scheduled-events"
+
+      # Warning: Long Duration Events
+      - alert: AzureLongDurationEvent
+        expr: azure_scheduled_events_duration_seconds > 3600
+        for: 2m
+        labels:
+          severity: warning
+          service: azure_vm
+          alert_type: long_duration
+          team: infrastructure
+        annotations:
+          summary: "Long duration scheduled event on {{ $labels.hostname }}"
+          description: |
+            WARNING: Scheduled event with duration > 1 hour on {{ $labels.hostname }}.
+            Event Type: {{ $labels.EventType }}
+            Duration: {{ $value }}s
+            
+            Extended maintenance window detected.
+
+  - name: azure_imds_health
+    interval: 60s
+    rules:
+      # Critical: IMDS Not Accessible
+      - alert: AzureIMDSDown
+        expr: azure_imds_health_result_code != 200
+        for: 2m
+        labels:
+          severity: critical
+          service: azure_imds
+          alert_type: imds_down
+          team: infrastructure
+        annotations:
+          summary: "Azure IMDS not accessible on {{ $labels.hostname }}"
+          description: |
+            CRITICAL: Azure Instance Metadata Service is not accessible on {{ $labels.hostname }}.
+            Result Code: {{ $value }}
+            
+            This indicates potential issues:
+            1. Network connectivity problems
+            2. Azure platform issues
+            3. VM configuration problems
+            
+            Without IMDS, scheduled events monitoring is not functional.
+          runbook_url: "https://docs.microsoft.com/en-us/azure/virtual-machines/instance-metadata-service"
+
+      # Warning: IMDS Response Time High
+      - alert: AzureIMDSSlowResponse
+        expr: azure_imds_health_response_time > 5000
+        for: 3m
+        labels:
+          severity: warning
+          service: azure_imds
+          alert_type: imds_slow
+          team: infrastructure
+        annotations:
+          summary: "Azure IMDS slow response on {{ $labels.hostname }}"
+          description: |
+            WARNING: Azure IMDS response time is {{ $value }}ms on {{ $labels.hostname }}.
+            
+            This may indicate:
+            - Network latency issues
+            - Azure platform performance problems
+            - VM resource constraints
+
+  - name: azure_vm_metadata
+    interval: 300s
+    rules:
+      # Info: VM Metadata Changes
+      - alert: AzureVMMetadataChanged
+        expr: changes(azure_vm_metadata_platform_fault_domain[1h]) > 0
+        for: 0s
+        labels:
+          severity: info
+          service: azure_vm
+          alert_type: metadata_change
+          team: infrastructure
+        annotations:
+          summary: "Azure VM metadata changed on {{ $labels.hostname }}"
+          description: |
+            INFO: VM metadata has changed on {{ $labels.hostname }}.
+            
+            This may indicate VM migration or reconfiguration.
+            Review VM properties for any unexpected changes.
+
+  - name: telegraf_agent_health
+    interval: 60s
+    rules:
+      # Warning: Telegraf Agent Down
+      - alert: TelegrafAgentDown
+        expr: up{job="azure-scheduled-events"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: telegraf
+          alert_type: agent_down
+          team: infrastructure
+        annotations:
+          summary: "Telegraf agent down on {{ $labels.instance }}"
+          description: |
+            WARNING: Telegraf agent is not reporting metrics from {{ $labels.instance }}.
+            
+            This means Azure scheduled events monitoring is not functional.
+            
+            Check:
+            1. Telegraf service status
+            2. Configuration issues
+            3. Network connectivity
+            4. Resource constraints
+
+      # Warning: No Azure Metrics
+      - alert: AzureMetricsNotReported
+        expr: absent_over_time(azure_scheduled_events_event_count[10m])
+        for: 5m
+        labels:
+          severity: warning
+          service: telegraf
+          alert_type: no_azure_metrics
+          team: infrastructure
+        annotations:
+          summary: "No Azure metrics being reported"
+          description: |
+            WARNING: No Azure scheduled events metrics have been reported in the last 10 minutes.
+            
+            Possible causes:
+            1. Telegraf configuration issues
+            2. Azure IMDS connectivity problems
+            3. Network issues
+            4. Agent restart or failure
+            
+            Verify Telegraf is running and configured correctly.
+
+# Notification Policy Examples (configure in Grafana Cloud)
+notification_policies:
+  # Critical alerts - immediate notification
+  - matchers:
+      - severity = critical
+    group_wait: 0s
+    group_interval: 5m
+    repeat_interval: 12h
+    receiver: critical-azure-alerts
+
+  # High priority - grouped notification
+  - matchers:
+      - severity = high
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 24h
+    receiver: high-priority-alerts
+
+  # Warning alerts - grouped notification
+  - matchers:
+      - severity = warning
+    group_wait: 2m
+    group_interval: 10m
+    repeat_interval: 24h
+    receiver: warning-alerts
+
+# Contact Point Examples (configure in Grafana Cloud)
+contact_points:
+  - name: critical-azure-alerts
+    slack:
+      channel: "#critical-alerts"
+      title: "🚨 CRITICAL: Azure Scheduled Event"
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Severity:* {{ .Labels.severity }}
+        *Host:* {{ .Labels.hostname }}
+        *Description:* {{ .Annotations.description }}
+        {{ end }}
+
+  - name: high-priority-alerts
+    slack:
+      channel: "#infrastructure-alerts"
+      title: "⚠️ HIGH: Azure Scheduled Event"
+
+  - name: warning-alerts
+    email:
+      to: "infrastructure@company.com"
+      subject: "Azure Scheduled Events Warning"
