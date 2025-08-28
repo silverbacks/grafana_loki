@@ -89,7 +89,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(azure_scheduled_events_event_count{job=\"azure-scheduled-events\"})",
+          "expr": "count(azure_scheduled_events{job=\"azure-scheduled-events\"})",
           "interval": "",
           "legendFormat": "Active Events",
           "refId": "A"
@@ -158,7 +158,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "count(count by (hostname) (azure_scheduled_events_event_count{job=\"azure-scheduled-events\"}))",
+          "expr": "count(count by (hostname) (azure_scheduled_events{job=\"azure-scheduled-events\"}))",
           "interval": "",
           "legendFormat": "Affected VMs",
           "refId": "A"
@@ -304,7 +304,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(azure_scheduled_events_event_count{severity=\"critical\"})",
+          "expr": "count(azure_scheduled_events{EventType=~\"Freeze|Preempt\"})",
           "interval": "",
           "legendFormat": "Critical Events",
           "refId": "A"
@@ -691,7 +691,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "azure_vm_metadata_platform_fault_domain",
+          "expr": "azure_vm_metadata{platformFaultDomain!=''}",
           "format": "table",
           "instant": true,
           "interval": "",

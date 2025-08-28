@@ -182,7 +182,7 @@ groups:
     rules:
       # Info: VM Metadata Changes
       - alert: AzureVMMetadataChanged
-        expr: changes(azure_vm_metadata_platform_fault_domain[1h]) > 0
+        expr: changes(azure_vm_metadata{platformFaultDomain!=''}[1h]) > 0
         for: 0s
         labels:
           severity: info
